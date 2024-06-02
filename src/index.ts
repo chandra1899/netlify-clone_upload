@@ -37,6 +37,7 @@ app.post("/deploy", async (req, res) => {
     })
 
     publisher.lPush("build-queue", id)
+    publisher.hSet("status", id, "uploaded")
 
     res.json({ id })
 })

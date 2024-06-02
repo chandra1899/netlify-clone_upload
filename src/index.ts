@@ -34,10 +34,18 @@ app.post("/deploy", async (req, res) => {
 
     const files = getAllFiles(path.join(__dirname, `output/${id}`));
     // console.log(files); 
-    files.forEach(async file => {
-        await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
+    // files.forEach(async file => {
+    //     await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
+    // })
+    const allPromises = files.map((file) => {
+        return new Promise(async (resolve) => {
+            await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
+            resolve("")
+        })
     })
 
+    await Promise.all(allPromises)
+    
     publisher.lPush("build-queue", id)
     publisher.hSet("status", id, "uploaded")
 

@@ -4,6 +4,7 @@ import simpleGit from "simple-git"
 import { generate } from "./generateId"
 import path from "path"
 import { getAllFiles } from "./getAllFiles"
+import { uploadFile } from "./aws"
 
 const app = express()
 app.use(cors())
@@ -15,8 +16,10 @@ app.post("/deploy", async (req, res) => {
     await simpleGit().clone(repoUrl, path.join(__dirname, `output/${id}`));
 
     const files = getAllFiles(path.join(__dirname, `output/${id}`));
-    console.log(files);
-    
+    // console.log(files); 
+    files.forEach(async file => {
+        await uploadFile(file.slice(__dirname.length + 1), file)
+    })
 
     res.json({ id })
 })

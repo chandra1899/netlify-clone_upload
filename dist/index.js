@@ -18,6 +18,7 @@ const simple_git_1 = __importDefault(require("simple-git"));
 const generateId_1 = require("./generateId");
 const path_1 = __importDefault(require("path"));
 const getAllFiles_1 = require("./getAllFiles");
+const aws_1 = require("./aws");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
@@ -26,7 +27,10 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const id = (0, generateId_1.generate)();
     yield (0, simple_git_1.default)().clone(repoUrl, path_1.default.join(__dirname, `output/${id}`));
     const files = (0, getAllFiles_1.getAllFiles)(path_1.default.join(__dirname, `output/${id}`));
-    console.log(files);
+    // console.log(files); 
+    files.forEach((file) => __awaiter(void 0, void 0, void 0, function* () {
+        yield (0, aws_1.uploadFile)(file.slice(__dirname.length + 1), file);
+    }));
     res.json({ id });
 }));
 app.listen(3000, () => console.log(`app is running on port : 3000`));

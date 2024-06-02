@@ -19,9 +19,24 @@ const generateId_1 = require("./generateId");
 const path_1 = __importDefault(require("path"));
 const getAllFiles_1 = require("./getAllFiles");
 const aws_1 = require("./aws");
+const redis_1 = require("redis");
+const publisher = (0, redis_1.createClient)();
+publisher.connect();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+const parseFile = (filepath) => {
+    let s = "";
+    for (let i = 0; i < filepath.length; i++) {
+        if (filepath[i] === '\\') {
+            s += '/';
+        }
+        else {
+            s += filepath[i];
+        }
+    }
+    return s;
+};
 app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const repoUrl = req.body.repoUrl;
     const id = (0, generateId_1.generate)();
@@ -29,8 +44,9 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const files = (0, getAllFiles_1.getAllFiles)(path_1.default.join(__dirname, `output/${id}`));
     // console.log(files); 
     files.forEach((file) => __awaiter(void 0, void 0, void 0, function* () {
-        yield (0, aws_1.uploadFile)(file.slice(__dirname.length + 1), file);
+        yield (0, aws_1.uploadFile)(parseFile(file).slice(__dirname.length + 1), file);
     }));
+    publisher.lPush("build-queue", id);
     res.json({ id });
 }));
 app.listen(3000, () => console.log(`app is running on port : 3000`));

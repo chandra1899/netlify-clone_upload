@@ -5,10 +5,25 @@ import { generate } from "./generateId"
 import path from "path"
 import { getAllFiles } from "./getAllFiles"
 import { uploadFile } from "./aws"
+import { createClient } from "redis"
+const publisher = createClient()
+publisher.connect()
 
 const app = express()
 app.use(cors())
 app.use(express.json())
+
+const parseFile = (filepath : string) => {
+    let s = "";
+    for(let i=0;i<filepath.length;i++){
+        if(filepath[i] === '\\'){
+            s += '/'
+        } else {
+            s += filepath[i]
+        }
+    }
+    return s;
+}
 
 app.post("/deploy", async (req, res) => {
     const repoUrl = req.body.repoUrl
@@ -18,8 +33,10 @@ app.post("/deploy", async (req, res) => {
     const files = getAllFiles(path.join(__dirname, `output/${id}`));
     // console.log(files); 
     files.forEach(async file => {
-        await uploadFile(file.slice(__dirname.length + 1), file)
+        await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
     })
+
+    publisher.lPush("build-queue", id)
 
     res.json({ id })
 })

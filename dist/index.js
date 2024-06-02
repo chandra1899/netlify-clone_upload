@@ -48,14 +48,11 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     // files.forEach(async file => {
     //     await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
     // })
-    const allPromises = files.map((file) => {
-        return new Promise((resolve) => __awaiter(void 0, void 0, void 0, function* () {
-            yield (0, aws_1.uploadFile)(parseFile(file).slice(__dirname.length + 1), file);
-            resolve("");
-        }));
-    });
+    const allPromises = files.map((file) => __awaiter(void 0, void 0, void 0, function* () {
+        yield (0, aws_1.uploadFile)(parseFile(file).slice(__dirname.length + 1), file);
+    }));
     yield Promise.all(allPromises);
-    console.log("hello hi bye bye bye");
+    console.log("hello");
     publisher.lPush("build-queue", id);
     publisher.hSet("status", id, "uploaded");
     res.json({ id });

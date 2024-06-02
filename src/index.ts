@@ -8,6 +8,8 @@ import { uploadFile } from "./aws"
 import { createClient } from "redis"
 const publisher = createClient()
 publisher.connect()
+const subscriber = createClient()
+subscriber.connect()
 
 const app = express()
 app.use(cors())
@@ -40,6 +42,14 @@ app.post("/deploy", async (req, res) => {
     publisher.hSet("status", id, "uploaded")
 
     res.json({ id })
+})
+
+app.get("/status",async (req, res) => {
+    const id = req.query.id;
+    const response = await subscriber.hGet("status", id as string)
+    res.json({
+        status : response
+    })
 })
 
 app.listen(3000, () => console.log(`app is running on port : 3000`))

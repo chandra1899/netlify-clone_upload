@@ -66,6 +66,14 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         return res.status(500).json({ mesage: error });
     }
 }));
+app.post("/redeploy", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = req.body.id;
+    publisher.lPush("redeploy-queue", id);
+    console.log(id);
+    res.json({
+        id
+    });
+}));
 app.get("/status", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = req.query.id;
     const response = yield subscriber.hGet("status", id);

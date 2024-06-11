@@ -62,6 +62,16 @@ app.post("/deploy", async (req, res) => {
       }
 })
 
+app.post("/redeploy",async (req, res) => {
+    const id = req.body.id;
+    
+    publisher.lPush("redeploy-queue", id)
+    console.log(id);
+    
+    res.json({
+        id
+    })
+})
 app.get("/status",async (req, res) => {
     const id = req.query.id;
     const response = await subscriber.hGet("status", id as string)

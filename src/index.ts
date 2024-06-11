@@ -6,6 +6,8 @@ import path from "path"
 import { getAllFiles } from "./getAllFiles"
 import { uploadFile } from "./aws"
 import { createClient } from "redis"
+import { updatestatus } from "./updatestatus"
+import { createDeployment } from "./createDeployment"
 const publisher = createClient()
 publisher.connect()
 const subscriber = createClient()
@@ -27,23 +29,37 @@ const parseFile = (filepath : string) => {
     return s;
 }
 
+
+
 app.post("/deploy", async (req, res) => {
     const repoUrl = req.body.repoUrl
+    const email = req.body.email
     const id = generate()
-    await simpleGit().clone(repoUrl, path.join(__dirname, `output/${id}`));
+    try {
+      //createDeployment  
+        await createDeployment(email, repoUrl, id)
+        publisher.hSet("status", id, "uploading...")
+        await simpleGit().clone(repoUrl, path.join(__dirname, `output/${id}`));
 
-    const files = getAllFiles(path.join(__dirname, `output/${id}`));
+        const files = getAllFiles(path.join(__dirname, `output/${id}`));
 
-    const allPromises = files.map(async (file) => {
-        await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
-    })
+        const allPromises = files.map(async (file) => {
+            await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
+        })
 
-    await Promise.all(allPromises)
-    
-    publisher.lPush("build-queue", id)
-    publisher.hSet("status", id, "uploaded")
+        await Promise.all(allPromises)
 
-    res.json({ id })
+        //update status
+        await updatestatus(id)
+
+        publisher.lPush("build-queue", id)
+        publisher.hSet("status", id, "uploaded...")
+
+        res.status(200).json({ id })
+      } catch (error) {
+        console.log("eror : ", error);
+        return res.status(500).json({mesage : error})
+      }
 })
 
 app.get("/status",async (req, res) => {

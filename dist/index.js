@@ -20,6 +20,8 @@ const path_1 = __importDefault(require("path"));
 const getAllFiles_1 = require("./getAllFiles");
 const aws_1 = require("./aws");
 const redis_1 = require("redis");
+const updatestatus_1 = require("./updatestatus");
+const createDeployment_1 = require("./createDeployment");
 const publisher = (0, redis_1.createClient)();
 publisher.connect();
 const subscriber = (0, redis_1.createClient)();
@@ -41,21 +43,28 @@ const parseFile = (filepath) => {
 };
 app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const repoUrl = req.body.repoUrl;
+    const email = req.body.email;
     const id = (0, generateId_1.generate)();
-    yield (0, simple_git_1.default)().clone(repoUrl, path_1.default.join(__dirname, `output/${id}`));
-    const files = (0, getAllFiles_1.getAllFiles)(path_1.default.join(__dirname, `output/${id}`));
-    // console.log(files); 
-    // files.forEach(async file => {
-    //     await uploadFile(parseFile(file).slice(__dirname.length + 1), file)
-    // })
-    const allPromises = files.map((file) => __awaiter(void 0, void 0, void 0, function* () {
-        yield (0, aws_1.uploadFile)(parseFile(file).slice(__dirname.length + 1), file);
-    }));
-    yield Promise.all(allPromises);
-    console.log("hello");
-    publisher.lPush("build-queue", id);
-    publisher.hSet("status", id, "uploaded");
-    res.json({ id });
+    try {
+        //createDeployment  
+        yield (0, createDeployment_1.createDeployment)(email, repoUrl, id);
+        publisher.hSet("status", id, "uploading...");
+        yield (0, simple_git_1.default)().clone(repoUrl, path_1.default.join(__dirname, `output/${id}`));
+        const files = (0, getAllFiles_1.getAllFiles)(path_1.default.join(__dirname, `output/${id}`));
+        const allPromises = files.map((file) => __awaiter(void 0, void 0, void 0, function* () {
+            yield (0, aws_1.uploadFile)(parseFile(file).slice(__dirname.length + 1), file);
+        }));
+        yield Promise.all(allPromises);
+        //update status
+        yield (0, updatestatus_1.updatestatus)(id);
+        publisher.lPush("build-queue", id);
+        publisher.hSet("status", id, "uploaded...");
+        res.status(200).json({ id });
+    }
+    catch (error) {
+        console.log("eror : ", error);
+        return res.status(500).json({ mesage: error });
+    }
 }));
 app.get("/status", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = req.query.id;

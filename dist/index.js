@@ -22,6 +22,7 @@ const aws_1 = require("./aws");
 const redis_1 = require("redis");
 const updatestatus_1 = require("./updatestatus");
 const createDeployment_1 = require("./createDeployment");
+const deleteFolder_1 = require("./deleteFolder");
 const publisher = (0, redis_1.createClient)();
 publisher.connect();
 const subscriber = (0, redis_1.createClient)();
@@ -57,6 +58,8 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         yield Promise.all(allPromises);
         //update status
         yield (0, updatestatus_1.updatestatus)(id);
+        console.log("deleting files");
+        yield (0, deleteFolder_1.deleteFolder)(path_1.default.join(__dirname, `output/${id}`));
         publisher.lPush("build-queue", id);
         publisher.hSet("status", id, "uploaded...");
         res.status(200).json({ id });

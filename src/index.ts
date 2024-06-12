@@ -8,6 +8,7 @@ import { uploadFile } from "./aws"
 import { createClient } from "redis"
 import { updatestatus } from "./updatestatus"
 import { createDeployment } from "./createDeployment"
+import { deleteFolder } from "./deleteFolder"
 const publisher = createClient()
 publisher.connect()
 const subscriber = createClient()
@@ -51,6 +52,9 @@ app.post("/deploy", async (req, res) => {
 
         //update status
         await updatestatus(id)
+        console.log("deleting files");
+            
+        await deleteFolder(path.join(__dirname, `output/${id}`))
 
         publisher.lPush("build-queue", id)
         publisher.hSet("status", id, "uploaded...")

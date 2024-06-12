@@ -17,7 +17,7 @@ const getProjectName = (url) => {
 };
 const createDeployment = (email, repoUrl, id) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield fetch('http://localhost:8000/api/createdeployment', {
+        yield fetch(`${process.env.NEXTJS_BACKEND_URL}/api/createdeployment`, {
             method: 'POST',
             headers: {
                 'Access-Control-Allow-Origin': '*',

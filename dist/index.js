@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require('dotenv').config();
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const simple_git_1 = __importDefault(require("simple-git"));
@@ -20,9 +21,14 @@ const path_1 = __importDefault(require("path"));
 const ioredis_1 = __importDefault(require("ioredis"));
 const getAllFiles_1 = require("./getAllFiles");
 const aws_1 = require("./aws");
+// import { createClient } from "redis"
 const updatestatus_1 = require("./updatestatus");
 const createDeployment_1 = require("./createDeployment");
 const deleteFolder_1 = require("./deleteFolder");
+// const publisher = createClient()
+// publisher.connect()
+// const subscriber = createClient()
+// subscriber.connect()
 const publisher = new ioredis_1.default({
     host: process.env.REDIS_HOST,
     port: parseInt(process.env.REDIS_PORT),
@@ -66,9 +72,9 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         yield Promise.all(allPromises);
         //update status
         yield (0, updatestatus_1.updatestatus)(id, "uploaded");
-        console.log("deleting files");
+        // console.log("deleting files");
         yield (0, deleteFolder_1.deleteFolder)(path_1.default.join(__dirname, `output/${id}`));
-        console.log("deleted all files");
+        // console.log("deleted all files");
         yield publisher.lpush("build-queue", id);
         yield publisher.hset("status", id, "uploaded...");
         res.status(200).json({ id });
@@ -83,7 +89,7 @@ app.post("/redeploy", (req, res) => __awaiter(void 0, void 0, void 0, function* 
     yield publisher.lpush("redeploy-queue", id);
     yield publisher.hset("status", id, "in queue");
     yield (0, updatestatus_1.updatestatus)(id, "in queue");
-    console.log(id);
+    // console.log(id);
     res.json({
         id
     });

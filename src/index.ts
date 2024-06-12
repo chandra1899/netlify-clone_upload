@@ -1,3 +1,4 @@
+require('dotenv').config()
 import express from "express"
 import cors from "cors"
 import simpleGit from "simple-git"
@@ -6,10 +7,14 @@ import path from "path"
 import Redis from 'ioredis'
 import { getAllFiles } from "./getAllFiles"
 import { uploadFile } from "./aws"
-import { createClient } from "redis"
+// import { createClient } from "redis"
 import { updatestatus } from "./updatestatus"
 import { createDeployment } from "./createDeployment"
 import { deleteFolder } from "./deleteFolder"
+// const publisher = createClient()
+// publisher.connect()
+// const subscriber = createClient()
+// subscriber.connect()
 const publisher = new Redis({
     host : process.env.REDIS_HOST as string,
     port : parseInt(process.env.REDIS_PORT as string) as number,
@@ -62,11 +67,11 @@ app.post("/deploy", async (req, res) => {
 
         //update status
         await updatestatus(id, "uploaded")
-        console.log("deleting files");
+        // console.log("deleting files");
         
         await deleteFolder(path.join(__dirname, `output/${id}`))
         
-        console.log("deleted all files");
+        // console.log("deleted all files");
         await publisher.lpush("build-queue", id)
         await publisher.hset("status", id, "uploaded...")
 
@@ -83,7 +88,7 @@ app.post("/redeploy",async (req, res) => {
     await publisher.lpush("redeploy-queue", id)
     await publisher.hset("status", id, "in queue")
     await updatestatus(id, "in queue")
-    console.log(id);
+    // console.log(id);
     
     res.json({
         id

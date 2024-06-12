@@ -8,7 +8,7 @@ const getProjectName = (url: string): string => {
 
 export const createDeployment = async (email : string, repoUrl : string, id : string) => {
     try {
-        await fetch('http://localhost:8000/api/createdeployment',{
+        await fetch(`${process.env.NEXTJS_BACKEND_URL}/api/createdeployment`,{
             method:'POST',
             headers:{
               'Access-Control-Allow-Origin': '*',
@@ -27,6 +27,5 @@ export const createDeployment = async (email : string, repoUrl : string, id : st
           })
     } catch (error) {
         console.log("error", error);
-        
     }
 }

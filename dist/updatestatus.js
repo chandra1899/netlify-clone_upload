@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatestatus = void 0;
-const updatestatus = (id) => __awaiter(void 0, void 0, void 0, function* () {
+const updatestatus = (id, status) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield fetch('http://localhost:8000/api/updatestatus', {
             method: 'POST',
@@ -21,7 +21,7 @@ const updatestatus = (id) => __awaiter(void 0, void 0, void 0, function* () {
             },
             credentials: 'include',
             body: JSON.stringify({
-                status: "uploaded",
+                status: status,
                 deploymentId: id
             })
         });

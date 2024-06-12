@@ -3,16 +3,26 @@ import cors from "cors"
 import simpleGit from "simple-git"
 import { generate } from "./generateId"
 import path from "path"
+import Redis from 'ioredis'
 import { getAllFiles } from "./getAllFiles"
 import { uploadFile } from "./aws"
 import { createClient } from "redis"
 import { updatestatus } from "./updatestatus"
 import { createDeployment } from "./createDeployment"
 import { deleteFolder } from "./deleteFolder"
-const publisher = createClient()
-publisher.connect()
-const subscriber = createClient()
-subscriber.connect()
+const publisher = new Redis({
+    host : process.env.REDIS_HOST as string,
+    port : parseInt(process.env.REDIS_PORT as string) as number,
+    username : process.env.REDIS_USERNAME as string,
+    password : process.env.REDIS_PASSWORD as string
+})
+
+const subscriber = new Redis({
+    host : process.env.REDIS_HOST as string,
+    port : parseInt(process.env.REDIS_PORT as string) as number,
+    username : process.env.REDIS_USERNAME as string,
+    password : process.env.REDIS_PASSWORD as string
+})
 
 const app = express()
 app.use(cors())
@@ -39,7 +49,7 @@ app.post("/deploy", async (req, res) => {
     try {
       //createDeployment  
         await createDeployment(email, repoUrl, id)
-        publisher.hSet("status", id, "uploading...")
+        await publisher.hset("status", id, "uploading...")
         await simpleGit().clone(repoUrl, path.join(__dirname, `output/${id}`));
 
         const files = getAllFiles(path.join(__dirname, `output/${id}`));
@@ -51,13 +61,14 @@ app.post("/deploy", async (req, res) => {
         await Promise.all(allPromises)
 
         //update status
-        await updatestatus(id)
+        await updatestatus(id, "uploaded")
         console.log("deleting files");
-            
+        
         await deleteFolder(path.join(__dirname, `output/${id}`))
-
-        publisher.lPush("build-queue", id)
-        publisher.hSet("status", id, "uploaded...")
+        
+        console.log("deleted all files");
+        await publisher.lpush("build-queue", id)
+        await publisher.hset("status", id, "uploaded...")
 
         res.status(200).json({ id })
       } catch (error) {
@@ -69,7 +80,9 @@ app.post("/deploy", async (req, res) => {
 app.post("/redeploy",async (req, res) => {
     const id = req.body.id;
     
-    publisher.lPush("redeploy-queue", id)
+    await publisher.lpush("redeploy-queue", id)
+    await publisher.hset("status", id, "in queue")
+    await updatestatus(id, "in queue")
     console.log(id);
     
     res.json({
@@ -78,7 +91,7 @@ app.post("/redeploy",async (req, res) => {
 })
 app.get("/status",async (req, res) => {
     const id = req.query.id;
-    const response = await subscriber.hGet("status", id as string)
+    const response = await subscriber.hget("status", id as string)
     res.json({
         status : response
     })
